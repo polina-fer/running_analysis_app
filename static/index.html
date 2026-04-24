@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Running Form Analyzer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 40px;
+      letter-spacing: 1px;
+    }
+
+    .upload-area {
+      width: 100%;
+      max-width: 620px;
+      border: 2px dashed #333;
+      border-radius: 16px;
+      padding: 48px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #141414;
+      margin-bottom: 24px;
+    }
+
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #00e676;
+      background: #0a1f0f;
+    }
+
+    .upload-icon { font-size: 3rem; margin-bottom: 12px; }
+    .upload-area p { color: #aaa; font-size: 0.95rem; margin-bottom: 8px; }
+    .upload-area .file-name { color: #00e676; font-size: 0.9rem; margin-top: 8px; font-weight: 600; }
+    input[type="file"] { display: none; }
+
+    button {
+      background: #00e676;
+      color: #000;
+      border: none;
+      padding: 14px 40px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background 0.2s, transform 0.1s;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    button:hover { background: #00c853; }
+    button:active { transform: scale(0.98); }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .status {
+      margin-top: 24px;
+      font-size: 0.95rem;
+      color: #aaa;
+      min-height: 24px;
+      text-align: center;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 3px solid #333;
+      border-top-color: #00e676;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results {
+      width: 100%;
+      max-width: 620px;
+      margin-top: 40px;
+      display: none;
+    }
+
+    /* processed video player */
+    .video-section {
+      margin-bottom: 32px;
+    }
+
+    .video-section h2 {
+      font-size: 1rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 12px;
+      background: #000;
+      outline: none;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .metric-card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-card .label {
+      font-size: 0.75rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .metric-card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .metric-card .unit {
+      font-size: 0.75rem;
+      color: #555;
+      margin-left: 2px;
+    }
+
+    .scores-grid { display: flex; flex-direction: column; gap: 10px; }
+
+    .score-row {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .score-label { font-size: 0.9rem; color: #ccc; }
+
+    .score-bar-wrap { display: flex; align-items: center; gap: 12px; }
+
+    .score-bar {
+      width: 120px;
+      height: 6px;
+      background: #2a2a2a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+    .score-num { font-size: 1.1rem; font-weight: 700; width: 20px; text-align: right; }
+
+    .score-1 .score-bar-fill { background: #f44336; width: 33%; }
+    .score-2 .score-bar-fill { background: #ffeb3b; width: 66%; }
+    .score-3 .score-bar-fill { background: #00e676; width: 100%; }
+    .score-1 .score-num { color: #f44336; }
+    .score-2 .score-num { color: #ffeb3b; }
+    .score-3 .score-num { color: #00e676; }
+
+    .summary-info {
+      text-align: center;
+      color: #555;
+      font-size: 0.8rem;
+      margin-top: 20px;
+      margin-bottom: 40px;
+    }
+
+    .error-box {
+      background: #1a0000;
+      border: 1px solid #f44336;
+      border-radius: 10px;
+      padding: 20px;
+      color: #f44336;
+      text-align: center;
+      margin-top: 24px;
+      max-width: 620px;
+      width: 100%;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Running Form Analyzer</h1>
+  <p class="subtitle">Side view · AI-powered gait analysis</p>
+
+  <div class="upload-area" id="dropZone">
+    <div class="upload-icon">🎥</div>
+    <p>Drag & drop a video or click to browse</p>
+    <p style="font-size:0.8rem; color:#555;">Side view · MP4, MOV, AVI</p>
+    <div class="file-name" id="fileName"></div>
+    <input type="file" id="fileInput" accept="video/*" />
+  </div>
+
+  <button id="analyzeBtn" disabled>Analyze Running Form</button>
+
+  <div class="status" id="status"></div>
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="results" id="results">
+
+    <div class="video-section">
+      <h2>Processed Video</h2>
+      <video id="outputVideo" controls playsinline></video>
+    </div>
+
+    <p class="section-title">Session Summary</p>
+
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="label">Cadence</div>
+        <div class="value" id="m-cadence">—<span class="unit">spm</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Ground Contact</div>
+        <div class="value" id="m-gct">—<span class="unit">ms</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Vertical Osc.</div>
+        <div class="value" id="m-vosc">—<span class="unit">%</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Trunk Lean</div>
+        <div class="value" id="m-trunk">—<span class="unit">°</span></div>
+      </div>
+    </div>
+
+    <div class="scores-grid" id="scoresGrid"></div>
+    <div class="summary-info" id="summaryInfo"></div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+    const results = document.getElementById('results');
+    const errorBox = document.getElementById('errorBox');
+    const outputVideo = document.getElementById('outputVideo');
+
+    let selectedFile = null;
+
+    const scoreLabels = {
+      cadence_score: 'Cadence',
+      gct_score: 'Ground Contact Time',
+      vert_osc_score: 'Vertical Oscillation',
+      knee_strike_score: 'Knee Strike',
+      knee_push_score: 'Knee Push-off',
+      elbow_angle_score: 'Elbow Angle',
+      leg_split_score: 'Leg Split',
+      trunk_lean_score: 'Trunk Lean'
+    };
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(f) {
+      selectedFile = f;
+      fileName.textContent = f.name;
+      analyzeBtn.disabled = false;
+      results.style.display = 'none';
+      errorBox.style.display = 'none';
+      status.textContent = '';
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      analyzeBtn.disabled = true;
+      results.style.display = 'none';
+      errorBox.style.display = 'none';
+      status.innerHTML = '<span class="spinner"></span> Analyzing video — this may take a minute...';
+
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+
+      try {
+        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || 'Analysis failed');
+
+        showResults(data);
+        status.textContent = '';
+      } catch (err) {
+        status.textContent = '';
+        errorBox.textContent = '⚠️ ' + err.message;
+        errorBox.style.display = 'block';
+      } finally {
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    function showResults(data) {
+      // show processed video
+      outputVideo.src = data.video_url;
+      outputVideo.load();
+
+      // metrics
+      document.getElementById('m-cadence').innerHTML = `${data.metrics.cadence_spm}<span class="unit"> spm</span>`;
+      document.getElementById('m-gct').innerHTML = `${data.metrics.gct_ms}<span class="unit"> ms</span>`;
+      document.getElementById('m-vosc').innerHTML = `${data.metrics.vert_osc_pct}<span class="unit"> %</span>`;
+      document.getElementById('m-trunk').innerHTML = `${data.metrics.trunk_lean_deg}<span class="unit"> °</span>`;
+
+      // scores
+      const grid = document.getElementById('scoresGrid');
+      grid.innerHTML = '';
+      for (const [key, val] of Object.entries(data.scores)) {
+        const label = scoreLabels[key] || key;
+        const row = document.createElement('div');
+        row.className = `score-row score-${val}`;
+        row.innerHTML = `
+          <span class="score-label">${label}</span>
+          <div class="score-bar-wrap">
+            <div class="score-bar"><div class="score-bar-fill"></div></div>
+            <span class="score-num">${val}</span>
+          </div>`;
+        grid.appendChild(row);
+      }
+
+      document.getElementById('summaryInfo').textContent =
+        `Based on ${data.analyzed_steps} analyzed steps out of ${data.total_steps} total`;
+
+      results.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

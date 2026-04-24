@@ -69,6 +69,15 @@ def analyze_video(video_path, output_path=None):
     frame_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+    frame_width_orig = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    if frame_width_orig > 640:
+        scale = 640 / frame_width_orig
+    else:
+        scale = 1.0
+
+    frame_width = int(frame_width * scale)
+    frame_height = int(frame_height * scale)
+
     writer = None
     if output_path:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -100,7 +109,7 @@ def analyze_video(video_path, output_path=None):
     latest_ai_results = {}
     last_display_frame = None
 
-    with mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7) as pose_analyzer:
+    with mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7, model_complexity=0) as pose_analyzer:
         while video_capture.isOpened():
             ret, frame = video_capture.read()
             if not ret:

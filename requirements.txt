@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 python-multipart
-mediapipe==0.10.9
+mediapipe==0.10.13
 opencv-python-headless
 numpy
 pandas

@@ -66,17 +66,16 @@ def prepare_ml_features(lm, side, frame_width, frame_height):
 def analyze_video(video_path, output_path=None):
     video_capture = cv2.VideoCapture(video_path)
     frames_per_second = video_capture.get(cv2.CAP_PROP_FPS)
-    frame_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    orig_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    orig_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    frame_width_orig = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-    if frame_width_orig > 640:
-        scale = 640 / frame_width_orig
+    if orig_width > 640:
+        scale = 640 / orig_width
     else:
         scale = 1.0
 
-    frame_width = int(frame_width * scale)
-    frame_height = int(frame_height * scale)
+    frame_width = int(orig_width * scale)
+    frame_height = int(orig_height * scale)
 
     writer = None
     if output_path:
@@ -108,12 +107,23 @@ def analyze_video(video_path, output_path=None):
     current_status_event = ""
     latest_ai_results = {}
     last_display_frame = None
+    frame_count = 0
 
     with mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7, model_complexity=0) as pose_analyzer:
         while video_capture.isOpened():
             ret, frame = video_capture.read()
             if not ret:
                 break
+
+            frame_count += 1
+
+            if scale != 1.0:
+                frame = cv2.resize(frame, (frame_width, frame_height))
+
+            if frame_count % 2 != 0:
+                if writer and last_display_frame is not None:
+                    writer.write(last_display_frame)
+                continue
 
             overlay_layer = frame.copy()
             display_frame = frame.copy()
